@@ -35,7 +35,8 @@ public class GETrackerOverlay extends OverlayPanel
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.showOverlay())
+        // Widget group 465 is the Grand Exchange interface
+        if (!config.showOverlay() || client.getWidget(465, 0) == null)
         {
             return null;
         }

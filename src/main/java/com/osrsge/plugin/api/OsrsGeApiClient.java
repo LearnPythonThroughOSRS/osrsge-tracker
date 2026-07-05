@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class OsrsGeApiClient
 {
-    private static final String BASE_URL = "https://osrsge.lovable.app/api";
+    private static final String BASE_URL = "https://osrsge.io/api";
     private static final String WIKI_API_URL = "https://prices.runescape.wiki/api/v1/osrs";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -42,7 +42,7 @@ public class OsrsGeApiClient
     }
 
     /**
-     * Sync completed trades to osrsge.lovable.app
+     * Sync completed trades to osrsge.io
      */
     public CompletableFuture<Boolean> syncTrades(List<CompletedTrade> trades)
     {
@@ -92,7 +92,7 @@ public class OsrsGeApiClient
     }
 
     /**
-     * Sync active offers to osrsge.lovable.app
+     * Sync active offers to osrsge.io
      */
     public CompletableFuture<Boolean> syncActiveOffers(List<TradeOffer> offers)
     {

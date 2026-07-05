@@ -15,7 +15,9 @@ import java.awt.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GETrackerPanel extends PluginPanel
 {
@@ -28,6 +30,7 @@ public class GETrackerPanel extends PluginPanel
     private final JLabel profitLabel = new JLabel("0 gp");
     private final JLabel profitPerHourLabel = new JLabel("0 gp/hr");
     private final JLabel flipsLabel = new JLabel("0");
+    private final JLabel taxLabel = new JLabel("0 gp");
     private final JLabel sessionTimeLabel = new JLabel("00:00:00");
     private final JLabel syncStatusLabel = new JLabel("Offline");
 
@@ -85,7 +88,7 @@ public class GETrackerPanel extends PluginPanel
 
     private JPanel buildStatsPanel()
     {
-        JPanel stats = new JPanel(new GridLayout(4, 2, 5, 5));
+        JPanel stats = new JPanel(new GridLayout(5, 2, 5, 5));
         stats.setBackground(ColorScheme.DARKER_GRAY_COLOR);
         stats.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -103,6 +106,11 @@ public class GETrackerPanel extends PluginPanel
         flipsLabel.setForeground(Color.WHITE);
         flipsLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         stats.add(flipsLabel);
+
+        stats.add(createLabel("Tax Paid:", Color.WHITE));
+        taxLabel.setForeground(new Color(255, 180, 100));
+        taxLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        stats.add(taxLabel);
 
         stats.add(createLabel("Session:", Color.WHITE));
         sessionTimeLabel.setForeground(Color.WHITE);
@@ -161,7 +169,7 @@ public class GETrackerPanel extends PluginPanel
 
         JButton openWebButton = new JButton("Open Dashboard");
         openWebButton.setFocusPainted(false);
-        openWebButton.addActionListener(e -> LinkBrowser.browse("https://osrsge.lovable.app/"));
+        openWebButton.addActionListener(e -> LinkBrowser.browse("https://osrsge.io/"));
         actions.add(openWebButton);
 
         JButton resetButton = new JButton("Reset Session");
@@ -189,6 +197,7 @@ public class GETrackerPanel extends PluginPanel
         profitPerHourLabel.setForeground(profitColor);
 
         flipsLabel.setText(String.valueOf(stats.getTotalFlips()));
+        taxLabel.setText(formatGp(stats.getTotalTax()));
         sessionTimeLabel.setText(stats.getSessionDurationFormatted());
 
         boolean connected = plugin.isSyncConnected();
@@ -235,18 +244,63 @@ public class GETrackerPanel extends PluginPanel
             }
             else
             {
-                // Show most recent 20 trades
-                int start = Math.max(0, trades.size() - 20);
-                for (int i = trades.size() - 1; i >= start; i--)
+                // Aggregate per item: total profit, flip count, latest sell time
+                Map<Integer, ItemAggregate> byItem = new LinkedHashMap<>();
+                for (CompletedTrade trade : trades)
                 {
-                    tradeHistoryPanel.add(createTradeRow(trades.get(i)));
-                    tradeHistoryPanel.add(Box.createVerticalStrut(2));
+                    ItemAggregate agg = byItem.computeIfAbsent(trade.getItemId(),
+                        k -> new ItemAggregate(trade.getItemName()));
+                    agg.profit += trade.getProfit();
+                    agg.flips++;
+                    agg.lastSellTimestamp = Math.max(agg.lastSellTimestamp, trade.getSellTimestamp());
                 }
+
+                byItem.values().stream()
+                    .sorted((a, b) -> Long.compare(b.lastSellTimestamp, a.lastSellTimestamp))
+                    .limit(20)
+                    .forEach(agg -> {
+                        tradeHistoryPanel.add(createAggregateRow(agg));
+                        tradeHistoryPanel.add(Box.createVerticalStrut(2));
+                    });
             }
 
             tradeHistoryPanel.revalidate();
             tradeHistoryPanel.repaint();
         });
+    }
+
+    private static class ItemAggregate
+    {
+        final String itemName;
+        long profit;
+        int flips;
+        long lastSellTimestamp;
+
+        ItemAggregate(String itemName)
+        {
+            this.itemName = itemName;
+        }
+    }
+
+    private JPanel createAggregateRow(ItemAggregate agg)
+    {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setBackground(new Color(40, 40, 40));
+        row.setBorder(new EmptyBorder(4, 5, 4, 5));
+
+        JLabel nameLabel = new JLabel(agg.itemName + " (" + agg.flips + ")");
+        nameLabel.setForeground(Color.WHITE);
+        nameLabel.setFont(FontManager.getRunescapeSmallFont());
+        row.add(nameLabel, BorderLayout.WEST);
+
+        Color profitColor = agg.profit >= 0 ? new Color(0, 200, 83) : new Color(255, 80, 80);
+        String sign = agg.profit >= 0 ? "+" : "";
+        JLabel profitLabel = new JLabel(sign + formatGp(agg.profit));
+        profitLabel.setForeground(profitColor);
+        profitLabel.setFont(FontManager.getRunescapeSmallFont());
+        row.add(profitLabel, BorderLayout.EAST);
+
+        return row;
     }
 
     private JPanel createOfferRow(TradeOffer offer)
@@ -268,28 +322,6 @@ public class GETrackerPanel extends PluginPanel
         progressLabel.setForeground(Color.LIGHT_GRAY);
         progressLabel.setFont(FontManager.getRunescapeSmallFont());
         row.add(progressLabel, BorderLayout.EAST);
-
-        return row;
-    }
-
-    private JPanel createTradeRow(CompletedTrade trade)
-    {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setBackground(new Color(40, 40, 40));
-        row.setBorder(new EmptyBorder(4, 5, 4, 5));
-
-        JLabel nameLabel = new JLabel(trade.getItemName() + " x" + trade.getQuantity());
-        nameLabel.setForeground(Color.WHITE);
-        nameLabel.setFont(FontManager.getRunescapeSmallFont());
-        row.add(nameLabel, BorderLayout.WEST);
-
-        long profit = trade.getProfit();
-        Color profitColor = profit >= 0 ? new Color(0, 200, 83) : new Color(255, 80, 80);
-        String sign = profit >= 0 ? "+" : "";
-        JLabel profitLabel = new JLabel(sign + formatGp(profit));
-        profitLabel.setForeground(profitColor);
-        profitLabel.setFont(FontManager.getRunescapeSmallFont());
-        row.add(profitLabel, BorderLayout.EAST);
 
         return row;
     }

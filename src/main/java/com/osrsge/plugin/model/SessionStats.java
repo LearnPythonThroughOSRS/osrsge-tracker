@@ -3,23 +3,21 @@ package com.osrsge.plugin.model;
 import lombok.Data;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 public class SessionStats
 {
     private final Instant sessionStart = Instant.now();
     private long totalProfit = 0;
+    private long totalTax = 0;
     private int totalFlips = 0;
     private int totalBuys = 0;
     private int totalSells = 0;
-    private final List<CompletedTrade> completedTrades = new ArrayList<>();
 
     public void recordFlip(CompletedTrade trade)
     {
-        completedTrades.add(trade);
         totalProfit += trade.getProfit();
+        totalTax += trade.getTax();
         totalFlips++;
     }
 
@@ -52,14 +50,5 @@ public class SessionStats
         long seconds = getSessionDurationSeconds();
         if (seconds == 0) return 0;
         return (totalProfit * 3600) / seconds;
-    }
-
-    public void reset()
-    {
-        totalProfit = 0;
-        totalFlips = 0;
-        totalBuys = 0;
-        totalSells = 0;
-        completedTrades.clear();
     }
 }

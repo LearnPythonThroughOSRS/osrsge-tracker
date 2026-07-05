@@ -10,7 +10,7 @@ public interface GETrackerConfig extends Config
 {
     @ConfigSection(
         name = "Website Sync",
-        description = "Settings for syncing with osrsge.lovable.app",
+        description = "Settings for syncing with osrsge.io",
         position = 0
     )
     String syncSection = "sync";
@@ -25,7 +25,7 @@ public interface GETrackerConfig extends Config
     @ConfigItem(
         keyName = "apiKey",
         name = "API Key",
-        description = "Your API key from osrsge.lovable.app for syncing trade data",
+        description = "Your API key from osrsge.io for syncing trade data",
         section = syncSection,
         position = 0,
         secret = true
@@ -38,13 +38,13 @@ public interface GETrackerConfig extends Config
     @ConfigItem(
         keyName = "syncEnabled",
         name = "Enable Sync",
-        description = "Automatically sync trades to osrsge.lovable.app",
+        description = "Automatically sync trades to osrsge.io",
         section = syncSection,
         position = 1
     )
     default boolean syncEnabled()
     {
-        return true;
+        return false;
     }
 
     @ConfigItem(
