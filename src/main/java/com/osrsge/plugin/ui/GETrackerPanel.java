@@ -8,6 +8,7 @@ import com.osrsge.plugin.model.TradeOffer;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.LinkBrowser;
 
 import javax.swing.*;
@@ -371,14 +372,21 @@ public class GETrackerPanel extends PluginPanel
             arrow.setFont(FontManager.getRunescapeSmallFont());
             arrow.setBorder(new EmptyBorder(0, 0, 0, 6));
 
-            JLabel name = new JLabel(item.getItemName() + "  (x" + item.getQuantity() + ")");
+            JLabel icon = new JLabel();
+            icon.setBorder(new EmptyBorder(0, 0, 0, 6));
+            AsyncBufferedImage itemImage = plugin.getItemManager()
+                .getImage(item.getItemId(), item.getQuantity(), item.getQuantity() > 1);
+            itemImage.addTo(icon);
+
+            JLabel name = new JLabel(item.getItemName());
             name.setForeground(Color.WHITE);
             name.setFont(FontManager.getRunescapeSmallFont());
 
             JPanel left = new JPanel(new BorderLayout());
             left.setOpaque(false);
             left.add(arrow, BorderLayout.WEST);
-            left.add(name, BorderLayout.CENTER);
+            left.add(icon, BorderLayout.CENTER);
+            left.add(name, BorderLayout.EAST);
             headerRow.add(left, BorderLayout.WEST);
 
             Color profitColor = item.getTotalProfit() >= 0 ? GREEN : RED;
@@ -466,10 +474,21 @@ public class GETrackerPanel extends PluginPanel
         String action = offer.isBuy() ? "BUY" : "SELL";
         Color actionColor = offer.isBuy() ? BLUE : ORANGE;
 
+        JLabel iconLabel = new JLabel();
+        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 6));
+        AsyncBufferedImage itemImage = plugin.getItemManager()
+            .getImage(offer.getItemId(), offer.getTotalQuantity(), offer.getTotalQuantity() > 1);
+        itemImage.addTo(iconLabel);
+
         JLabel nameLabel = new JLabel(action + " " + offer.getItemName());
         nameLabel.setForeground(actionColor);
         nameLabel.setFont(FontManager.getRunescapeSmallFont());
-        row.add(nameLabel, BorderLayout.WEST);
+
+        JPanel left = new JPanel(new BorderLayout());
+        left.setOpaque(false);
+        left.add(iconLabel, BorderLayout.WEST);
+        left.add(nameLabel, BorderLayout.CENTER);
+        row.add(left, BorderLayout.WEST);
 
         String progress = offer.getQuantityFilled() + "/" + offer.getTotalQuantity();
         JLabel progressLabel = new JLabel(progress + " @ " + formatGp(offer.getPrice()));

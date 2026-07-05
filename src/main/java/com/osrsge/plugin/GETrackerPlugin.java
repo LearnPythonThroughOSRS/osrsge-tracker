@@ -49,6 +49,7 @@ public class GETrackerPlugin extends Plugin
     @Inject
     private GETrackerConfig config;
 
+    @Getter
     @Inject
     private ItemManager itemManager;
 
