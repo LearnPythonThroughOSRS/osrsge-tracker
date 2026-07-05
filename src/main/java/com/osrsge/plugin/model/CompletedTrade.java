@@ -13,6 +13,7 @@ public class CompletedTrade
     private int sellPrice;
     private int quantity;
     private long profit;
+    private long tax;
     private long buyTimestamp;
     private long sellTimestamp;
     private boolean synced;

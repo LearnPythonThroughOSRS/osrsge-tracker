@@ -75,10 +75,13 @@ public class GETrackerPlugin extends Plugin
 
     private FlipTracker flipTracker = new FlipTracker();
 
+    private final OfferEventDeduper deduper = new OfferEventDeduper();
+
     // slot -> last known offer state
     private final Map<Integer, TradeOffer> slotOffers = new ConcurrentHashMap<>();
 
     // All completed trades for this player
+    @Getter
     private List<CompletedTrade> allTrades = new ArrayList<>();
 
     private ScheduledExecutorService syncExecutor;
@@ -158,6 +161,12 @@ public class GETrackerPlugin extends Plugin
 
                 // Load saved data
                 allTrades = tradeStorage.loadTrades(playerName);
+                flipTracker.restore(tradeStorage.loadLedger(playerName));
+                for (TradeOffer saved : tradeStorage.loadOffers(playerName))
+                {
+                    deduper.seed(saved.getSlot(), saved.getState(),
+                        saved.getQuantityFilled(), saved.getAmountSpent());
+                }
 
                 // Process any pending events
                 for (GrandExchangeOfferChanged pending : pendingEvents)
@@ -179,6 +188,7 @@ public class GETrackerPlugin extends Plugin
                 playerName = null;
                 slotOffers.clear();
                 flipTracker.clear();
+                deduper.clear();
             }
         }
     }
@@ -204,6 +214,12 @@ public class GETrackerPlugin extends Plugin
         if (state == GrandExchangeOfferState.EMPTY)
         {
             slotOffers.remove(slot);
+            deduper.clearSlot(slot);
+            return;
+        }
+
+        if (deduper.isDuplicate(slot, state, offer.getQuantitySold(), offer.getSpent()))
+        {
             return;
         }
 
@@ -224,50 +240,31 @@ public class GETrackerPlugin extends Plugin
             .timestamp(System.currentTimeMillis())
             .build();
 
-        TradeOffer previous = slotOffers.get(slot);
         slotOffers.put(slot, tradeOffer);
 
-        // Handle completed buy
-        if (state == GrandExchangeOfferState.BOUGHT || state == GrandExchangeOfferState.CANCELLED_BUY)
+        if ((state == GrandExchangeOfferState.BOUGHT || state == GrandExchangeOfferState.CANCELLED_BUY)
+            && tradeOffer.getQuantityFilled() > 0)
         {
-            if (tradeOffer.getQuantityFilled() > 0)
-            {
-                flipTracker.recordBuyComplete(tradeOffer);
-                sessionStats.recordBuy();
-                log.debug("Buy completed: {} x{} @ {}", itemName, tradeOffer.getQuantityFilled(), tradeOffer.getAveragePrice());
-            }
+            flipTracker.recordBuy(tradeOffer.getItemId(), tradeOffer.getQuantityFilled(),
+                tradeOffer.getAveragePrice(), tradeOffer.getTimestamp());
+            sessionStats.recordBuy();
+            log.debug("Buy completed: {} x{} @ {}", itemName,
+                tradeOffer.getQuantityFilled(), tradeOffer.getAveragePrice());
         }
 
-        // Handle completed sell - try to match with a buy for flip detection
-        if (state == GrandExchangeOfferState.SOLD || state == GrandExchangeOfferState.CANCELLED_SELL)
+        if ((state == GrandExchangeOfferState.SOLD || state == GrandExchangeOfferState.CANCELLED_SELL)
+            && tradeOffer.getQuantityFilled() > 0)
         {
-            if (tradeOffer.getQuantityFilled() > 0)
+            sessionStats.recordSell();
+            CompletedTrade trade = flipTracker.matchSell(tradeOffer.getItemId(), itemName,
+                tradeOffer.getQuantityFilled(), tradeOffer.getAveragePrice(), tradeOffer.getTimestamp());
+
+            if (trade != null)
             {
-                sessionStats.recordSell();
-                TradeOffer matchingBuy = flipTracker.consumeMatchingBuy(tradeOffer.getItemId());
-
-                if (matchingBuy != null)
-                {
-                    int quantity = Math.min(matchingBuy.getQuantityFilled(), tradeOffer.getQuantityFilled());
-                    long profit = ((long) tradeOffer.getAveragePrice() - matchingBuy.getAveragePrice()) * quantity;
-
-                    CompletedTrade trade = CompletedTrade.builder()
-                        .itemId(tradeOffer.getItemId())
-                        .itemName(itemName)
-                        .buyPrice(matchingBuy.getAveragePrice())
-                        .sellPrice(tradeOffer.getAveragePrice())
-                        .quantity(quantity)
-                        .profit(profit)
-                        .buyTimestamp(matchingBuy.getTimestamp())
-                        .sellTimestamp(tradeOffer.getTimestamp())
-                        .synced(false)
-                        .build();
-
-                    allTrades.add(trade);
-                    sessionStats.recordFlip(trade);
-
-                    log.info("Flip completed: {} x{} profit={}", itemName, quantity, profit);
-                }
+                allTrades.add(trade);
+                sessionStats.recordFlip(trade);
+                log.info("Flip completed: {} x{} profit={} (tax={})",
+                    itemName, trade.getQuantity(), trade.getProfit(), trade.getTax());
             }
         }
 
@@ -361,6 +358,7 @@ public class GETrackerPlugin extends Plugin
     {
         if (playerName == null) return;
         tradeStorage.saveTrades(playerName, allTrades);
+        tradeStorage.saveLedger(playerName, flipTracker.snapshot());
 
         List<TradeOffer> offers = new ArrayList<>(slotOffers.values());
         tradeStorage.saveOffers(playerName, offers);
@@ -373,7 +371,7 @@ public class GETrackerPlugin extends Plugin
             SwingUtilities.invokeLater(() -> {
                 panel.updateStats();
                 panel.updateActiveOffers(getActiveOffers());
-                panel.updateTradeHistory(sessionStats.getCompletedTrades());
+                panel.updateTradeHistory(allTrades);
             });
         }
     }

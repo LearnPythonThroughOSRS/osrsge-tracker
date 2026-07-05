@@ -2,6 +2,7 @@ package com.osrsge.plugin.db;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.osrsge.plugin.model.BuyEntry;
 import com.osrsge.plugin.model.CompletedTrade;
 import com.osrsge.plugin.model.TradeOffer;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,42 @@ public class TradeStorage
     private File getOffersFile(String playerName)
     {
         return new File(PLUGIN_DIR, playerName.toLowerCase().replace(" ", "_") + "_offers.json");
+    }
+
+    private File getLedgerFile(String playerName)
+    {
+        return new File(PLUGIN_DIR, playerName.toLowerCase().replace(" ", "_") + "_ledger.json");
+    }
+
+    public List<BuyEntry> loadLedger(String playerName)
+    {
+        File file = getLedgerFile(playerName);
+        if (!file.exists()) return new ArrayList<>();
+
+        try (FileReader reader = new FileReader(file))
+        {
+            Type type = new TypeToken<List<BuyEntry>>(){}.getType();
+            List<BuyEntry> entries = gson.fromJson(reader, type);
+            return entries != null ? entries : new ArrayList<>();
+        }
+        catch (IOException e)
+        {
+            log.error("Failed to load ledger for {}", playerName, e);
+            return new ArrayList<>();
+        }
+    }
+
+    public void saveLedger(String playerName, List<BuyEntry> entries)
+    {
+        File file = getLedgerFile(playerName);
+        try (FileWriter writer = new FileWriter(file))
+        {
+            gson.toJson(entries, writer);
+        }
+        catch (IOException e)
+        {
+            log.error("Failed to save ledger for {}", playerName, e);
+        }
     }
 
     public List<CompletedTrade> loadTrades(String playerName)
