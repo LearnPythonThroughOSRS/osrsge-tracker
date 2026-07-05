@@ -32,3 +32,12 @@ targetCompatibility = '11'
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+
+tasks.register('runClient', JavaExec) {
+    group = 'runelite'
+    description = 'Launches RuneLite with the plugin loaded (developer mode)'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.osrsge.plugin.GETrackerPluginTest'
+    args = ['--developer-mode']
+    jvmArgs = ['-ea']
+}
