@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:osrsge.lovable.app)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:prices.runescape.wiki)"
+    ]
+  }
+}
