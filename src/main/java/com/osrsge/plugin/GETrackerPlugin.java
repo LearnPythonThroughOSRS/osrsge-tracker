@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @PluginDescriptor(
     name = "OSRS GE Tracker",
-    description = "Tracks Grand Exchange activity and syncs with osrsge.lovable.app",
+    description = "Tracks Grand Exchange activity and syncs with osrsge.io",
     tags = {"grand exchange", "ge", "flipping", "trading", "profit"}
 )
 public class GETrackerPlugin extends Plugin
