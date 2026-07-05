@@ -143,28 +143,31 @@ public class GETrackerPlugin extends Plugin
     {
         if (event.getGameState() == GameState.LOGGED_IN)
         {
+            // Player object appears some frames after LOGGED_IN; retry until it exists
             clientThread.invokeLater(() -> {
                 Player localPlayer = client.getLocalPlayer();
-                if (localPlayer != null && localPlayer.getName() != null)
+                if (localPlayer == null || localPlayer.getName() == null)
                 {
-                    playerName = localPlayer.getName();
-                    loggedIn = true;
-
-                    apiClient.setPlayerName(playerName);
-                    apiClient.setApiKey(config.apiKey());
-
-                    // Load saved data
-                    allTrades = tradeStorage.loadTrades(playerName);
-
-                    // Process any pending events
-                    for (GrandExchangeOfferChanged pending : pendingEvents)
-                    {
-                        processOfferEvent(pending);
-                    }
-                    pendingEvents.clear();
-
-                    updatePanel();
+                    return false;
                 }
+                playerName = localPlayer.getName();
+                loggedIn = true;
+
+                apiClient.setPlayerName(playerName);
+                apiClient.setApiKey(config.apiKey());
+
+                // Load saved data
+                allTrades = tradeStorage.loadTrades(playerName);
+
+                // Process any pending events
+                for (GrandExchangeOfferChanged pending : pendingEvents)
+                {
+                    processOfferEvent(pending);
+                }
+                pendingEvents.clear();
+
+                updatePanel();
+                return true;
             });
         }
         else if (event.getGameState() == GameState.LOGIN_SCREEN)
