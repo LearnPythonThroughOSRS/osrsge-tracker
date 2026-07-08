@@ -36,11 +36,23 @@ public interface GETrackerConfig extends Config
     }
 
     @ConfigItem(
+        keyName = "syncBaseUrl",
+        name = "Sync URL",
+        description = "Base URL of your osrsge.io sync backend (Lovable Cloud functions URL, e.g. https://abc123.supabase.co/functions/v1). Leave empty to disable sync.",
+        section = syncSection,
+        position = 1
+    )
+    default String syncBaseUrl()
+    {
+        return "";
+    }
+
+    @ConfigItem(
         keyName = "syncEnabled",
         name = "Enable Sync",
         description = "Automatically sync trades to osrsge.io",
         section = syncSection,
-        position = 1
+        position = 2
     )
     default boolean syncEnabled()
     {
@@ -52,7 +64,7 @@ public interface GETrackerConfig extends Config
         name = "Sync Interval (seconds)",
         description = "How often to sync data with the website",
         section = syncSection,
-        position = 2
+        position = 3
     )
     default int syncIntervalSeconds()
     {

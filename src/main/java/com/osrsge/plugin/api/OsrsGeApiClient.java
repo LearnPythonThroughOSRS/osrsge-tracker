@@ -16,12 +16,12 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class OsrsGeApiClient
 {
-    private static final String BASE_URL = "https://osrsge.io/api";
     private static final String WIKI_API_URL = "https://prices.runescape.wiki/api/v1/osrs";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient httpClient;
     private final Gson gson;
+    private String baseUrl = "";
     private String apiKey;
     private String playerName;
 
@@ -36,6 +36,11 @@ public class OsrsGeApiClient
         this.apiKey = apiKey;
     }
 
+    public void setBaseUrl(String baseUrl)
+    {
+        this.baseUrl = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
+    }
+
     public void setPlayerName(String playerName)
     {
         this.playerName = playerName;
@@ -47,9 +52,9 @@ public class OsrsGeApiClient
     public CompletableFuture<Boolean> syncTrades(List<CompletedTrade> trades)
     {
         return CompletableFuture.supplyAsync(() -> {
-            if (apiKey == null || apiKey.isEmpty())
+            if (apiKey == null || apiKey.isEmpty() || baseUrl.isEmpty())
             {
-                log.debug("No API key configured, skipping sync");
+                log.debug("Sync not configured (missing API key or base URL), skipping");
                 return false;
             }
 
@@ -63,7 +68,7 @@ public class OsrsGeApiClient
                 RequestBody body = RequestBody.create(JSON, json);
 
                 Request request = new Request.Builder()
-                    .url(BASE_URL + "/trades/sync")
+                    .url(baseUrl + "/trades-sync")
                     .header("Authorization", "Bearer " + apiKey)
                     .header("User-Agent", "osrsge-runelite-plugin")
                     .post(body)
@@ -97,7 +102,7 @@ public class OsrsGeApiClient
     public CompletableFuture<Boolean> syncActiveOffers(List<TradeOffer> offers)
     {
         return CompletableFuture.supplyAsync(() -> {
-            if (apiKey == null || apiKey.isEmpty()) return false;
+            if (apiKey == null || apiKey.isEmpty() || baseUrl.isEmpty()) return false;
 
             try
             {
@@ -109,7 +114,7 @@ public class OsrsGeApiClient
                 RequestBody body = RequestBody.create(JSON, json);
 
                 Request request = new Request.Builder()
-                    .url(BASE_URL + "/offers/sync")
+                    .url(baseUrl + "/offers-sync")
                     .header("Authorization", "Bearer " + apiKey)
                     .header("User-Agent", "osrsge-runelite-plugin")
                     .post(body)

@@ -107,6 +107,8 @@ public class GETrackerPlugin extends Plugin
     protected void startUp()
     {
         apiClient = new OsrsGeApiClient(okHttpClient, gson);
+        apiClient.setBaseUrl(config.syncBaseUrl());
+        apiClient.setApiKey(config.apiKey());
         tradeStorage = new TradeStorage(gson);
 
         overlay = new GETrackerOverlay(client, this, config);
@@ -159,6 +161,7 @@ public class GETrackerPlugin extends Plugin
 
                 apiClient.setPlayerName(playerName);
                 apiClient.setApiKey(config.apiKey());
+                apiClient.setBaseUrl(config.syncBaseUrl());
 
                 // Load saved data
                 allTrades = tradeStorage.loadTrades(playerName);
@@ -281,6 +284,10 @@ public class GETrackerPlugin extends Plugin
         if ("apiKey".equals(event.getKey()))
         {
             apiClient.setApiKey(config.apiKey());
+        }
+        if ("syncBaseUrl".equals(event.getKey()))
+        {
+            apiClient.setBaseUrl(config.syncBaseUrl());
         }
         if ("syncIntervalSeconds".equals(event.getKey()) || "syncEnabled".equals(event.getKey()))
         {
