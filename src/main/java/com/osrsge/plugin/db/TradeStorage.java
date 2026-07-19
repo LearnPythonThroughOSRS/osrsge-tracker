@@ -137,35 +137,4 @@ public class TradeStorage
         }
     }
 
-    public List<CompletedTrade> getUnsyncedTrades(String playerName)
-    {
-        List<CompletedTrade> all = loadTrades(playerName);
-        List<CompletedTrade> unsynced = new ArrayList<>();
-        for (CompletedTrade trade : all)
-        {
-            if (!trade.isSynced())
-            {
-                unsynced.add(trade);
-            }
-        }
-        return unsynced;
-    }
-
-    public void markTradesSynced(String playerName, List<CompletedTrade> syncedTrades)
-    {
-        List<CompletedTrade> all = loadTrades(playerName);
-        for (CompletedTrade trade : all)
-        {
-            for (CompletedTrade synced : syncedTrades)
-            {
-                if (trade.getBuyTimestamp() == synced.getBuyTimestamp()
-                    && trade.getSellTimestamp() == synced.getSellTimestamp()
-                    && trade.getItemId() == synced.getItemId())
-                {
-                    trade.setSynced(true);
-                }
-            }
-        }
-        saveTrades(playerName, all);
-    }
 }

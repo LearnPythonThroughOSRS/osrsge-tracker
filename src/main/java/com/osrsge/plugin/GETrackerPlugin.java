@@ -313,16 +313,20 @@ public class GETrackerPlugin extends Plugin
 
         try
         {
-            // Sync unsynced trades
-            List<CompletedTrade> unsynced = tradeStorage.getUnsyncedTrades(playerName);
+            // Sync unsynced trades from the in-memory list (the source of truth);
+            // marking the same objects synced keeps the flag across saveState overwrites
+            List<CompletedTrade> unsynced = allTrades.stream()
+                .filter(t -> !t.isSynced())
+                .collect(Collectors.toList());
             if (!unsynced.isEmpty())
             {
                 apiClient.syncTrades(unsynced).thenAccept(success -> {
                     if (success)
                     {
                         syncConnected = true;
-                        tradeStorage.markTradesSynced(playerName, unsynced);
-                        log.debug("Synced {} trades", unsynced.size());
+                        unsynced.forEach(t -> t.setSynced(true));
+                        saveState();
+                        log.info("Synced {} trades", unsynced.size());
                     }
                     else
                     {
