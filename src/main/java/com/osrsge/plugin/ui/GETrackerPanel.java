@@ -369,7 +369,8 @@ public class GETrackerPanel extends PluginPanel
 
             arrow = new JLabel("▶");
             arrow.setForeground(Color.GRAY);
-            arrow.setFont(FontManager.getRunescapeSmallFont());
+            // default Swing font: the RuneScape font lacks the triangle glyphs
+            arrow.setFont(arrow.getFont().deriveFont(9f));
             arrow.setBorder(new EmptyBorder(0, 0, 0, 6));
 
             JLabel icon = new JLabel();
