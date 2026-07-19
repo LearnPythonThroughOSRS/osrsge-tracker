@@ -293,6 +293,12 @@ public class GETrackerPlugin extends Plugin
         {
             startSyncTask();
         }
+        // immediate feedback when sync settings change
+        if ("apiKey".equals(event.getKey()) || "syncBaseUrl".equals(event.getKey())
+            || "syncEnabled".equals(event.getKey()))
+        {
+            syncExecutor.execute(this::performSync);
+        }
     }
 
     private void startSyncTask()
@@ -301,8 +307,9 @@ public class GETrackerPlugin extends Plugin
 
         if (!config.syncEnabled()) return;
 
+        // short initial delay so the panel shows Synced quickly after login/config
         syncTask = syncExecutor.scheduleAtFixedRate(this::performSync,
-            config.syncIntervalSeconds(),
+            2,
             config.syncIntervalSeconds(),
             TimeUnit.SECONDS);
     }
@@ -336,15 +343,12 @@ public class GETrackerPlugin extends Plugin
                 });
             }
 
-            // Sync active offers
-            List<TradeOffer> active = getActiveOffers();
-            if (!active.isEmpty())
-            {
-                apiClient.syncActiveOffers(active).thenAccept(success -> {
-                    syncConnected = success;
-                    updatePanel();
-                });
-            }
+            // Always send the offers snapshot: empty list clears stale server
+            // rows and doubles as a connection heartbeat for the Synced label
+            apiClient.syncActiveOffers(getActiveOffers()).thenAccept(success -> {
+                syncConnected = success;
+                updatePanel();
+            });
         }
         catch (Exception e)
         {
