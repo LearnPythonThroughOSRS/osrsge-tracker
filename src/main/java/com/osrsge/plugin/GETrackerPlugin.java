@@ -170,6 +170,8 @@ public class GETrackerPlugin extends Plugin
                 {
                     deduper.seed(saved.getSlot(), saved.getState(),
                         saved.getQuantityFilled(), saved.getAmountSpent());
+                    // restore slot state so placement timestamps survive relogs
+                    slotOffers.put(saved.getSlot(), saved);
                 }
 
                 // Process any pending events
@@ -229,6 +231,16 @@ public class GETrackerPlugin extends Plugin
 
         String itemName = itemManager.getItemComposition(offer.getItemId()).getName();
 
+        // carry the placement time across events for the same offer;
+        // a new offer (different item or fresh slot) starts the clock now
+        long now = System.currentTimeMillis();
+        TradeOffer previous = slotOffers.get(slot);
+        long placedTimestamp = (previous != null
+            && previous.getItemId() == offer.getItemId()
+            && previous.getPlacedTimestamp() > 0)
+            ? previous.getPlacedTimestamp()
+            : now;
+
         TradeOffer tradeOffer = TradeOffer.builder()
             .slot(slot)
             .itemId(offer.getItemId())
@@ -241,7 +253,8 @@ public class GETrackerPlugin extends Plugin
             .isBuy(state == GrandExchangeOfferState.BUYING
                 || state == GrandExchangeOfferState.BOUGHT
                 || state == GrandExchangeOfferState.CANCELLED_BUY)
-            .timestamp(System.currentTimeMillis())
+            .timestamp(now)
+            .placedTimestamp(placedTimestamp)
             .build();
 
         slotOffers.put(slot, tradeOffer);
@@ -249,8 +262,10 @@ public class GETrackerPlugin extends Plugin
         if ((state == GrandExchangeOfferState.BOUGHT || state == GrandExchangeOfferState.CANCELLED_BUY)
             && tradeOffer.getQuantityFilled() > 0)
         {
+            // buys start at offer placement, not observed fill — offers that
+            // fill while logged out keep their true hold time
             flipTracker.recordBuy(tradeOffer.getItemId(), tradeOffer.getQuantityFilled(),
-                tradeOffer.getAveragePrice(), tradeOffer.getTimestamp());
+                tradeOffer.getAveragePrice(), tradeOffer.getPlacedTimestamp());
             sessionStats.recordBuy();
             log.debug("Buy completed: {} x{} @ {}", itemName,
                 tradeOffer.getQuantityFilled(), tradeOffer.getAveragePrice());

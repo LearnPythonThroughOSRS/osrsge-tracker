@@ -18,6 +18,9 @@ public class TradeOffer
     private GrandExchangeOfferState state;
     private boolean isBuy;
     private long timestamp;
+    // when the offer was first placed in the slot; survives relogs so
+    // buys that fill while logged out keep their true start time
+    private long placedTimestamp;
 
     public boolean isComplete()
     {
