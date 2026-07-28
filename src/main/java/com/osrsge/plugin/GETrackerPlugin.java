@@ -181,6 +181,9 @@ public class GETrackerPlugin extends Plugin
                 }
                 pendingEvents.clear();
 
+                // connect immediately instead of waiting for the next timer tick
+                syncExecutor.execute(this::performSync);
+
                 updatePanel();
                 return true;
             });
