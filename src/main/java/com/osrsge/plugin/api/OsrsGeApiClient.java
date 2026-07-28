@@ -3,6 +3,7 @@ package com.osrsge.plugin.api;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.osrsge.plugin.model.CompletedTrade;
+import com.osrsge.plugin.model.OfferOutcome;
 import com.osrsge.plugin.model.TradeOffer;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -134,6 +135,47 @@ public class OsrsGeApiClient
     }
 
     /**
+     * Sync offer outcomes (fill-rate data) to osrsge.io
+     */
+    public CompletableFuture<Boolean> syncOutcomes(List<OfferOutcome> outcomes)
+    {
+        return CompletableFuture.supplyAsync(() -> {
+            if (apiKey == null || apiKey.isEmpty() || baseUrl.isEmpty()) return false;
+
+            try
+            {
+                OutcomesPayload payload = new OutcomesPayload();
+                payload.playerName = playerName;
+                payload.outcomes = outcomes;
+
+                String json = gson.toJson(payload);
+                RequestBody body = RequestBody.create(JSON, json);
+
+                Request request = new Request.Builder()
+                    .url(baseUrl + "/outcomes-sync")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("User-Agent", "osrsge-runelite-plugin")
+                    .post(body)
+                    .build();
+
+                try (Response response = httpClient.newCall(request).execute())
+                {
+                    if (!response.isSuccessful())
+                    {
+                        log.warn("Failed to sync outcomes: {}", response.code());
+                    }
+                    return response.isSuccessful();
+                }
+            }
+            catch (IOException e)
+            {
+                log.error("Error syncing outcomes", e);
+                return false;
+            }
+        });
+    }
+
+    /**
      * Fetch latest prices from OSRS Wiki API for margin checking.
      */
     public CompletableFuture<Map<String, WikiPrice>> fetchLatestPrices()
@@ -176,6 +218,12 @@ public class OsrsGeApiClient
     {
         String playerName;
         List<TradeOffer> offers;
+    }
+
+    private static class OutcomesPayload
+    {
+        String playerName;
+        List<OfferOutcome> outcomes;
     }
 
     public static class WikiPriceResponse

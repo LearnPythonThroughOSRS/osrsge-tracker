@@ -85,6 +85,9 @@ public class GETrackerPlugin extends Plugin
     @Getter
     private List<CompletedTrade> allTrades = new ArrayList<>();
 
+    // Terminal result of every offer, filled or not (fill-rate data)
+    private List<OfferOutcome> allOutcomes = new ArrayList<>();
+
     private ScheduledExecutorService syncExecutor;
     private ScheduledFuture<?> syncTask;
 
@@ -165,6 +168,7 @@ public class GETrackerPlugin extends Plugin
 
                 // Load saved data
                 allTrades = tradeStorage.loadTrades(playerName);
+                allOutcomes = tradeStorage.loadOutcomes(playerName);
                 flipTracker.restore(tradeStorage.loadLedger(playerName));
                 for (TradeOffer saved : tradeStorage.loadOffers(playerName))
                 {
@@ -261,6 +265,24 @@ public class GETrackerPlugin extends Plugin
             .build();
 
         slotOffers.put(slot, tradeOffer);
+
+        // record every terminal outcome, including zero-fill cancels (fill-rate data)
+        if (tradeOffer.isComplete())
+        {
+            allOutcomes.add(OfferOutcome.builder()
+                .itemId(tradeOffer.getItemId())
+                .itemName(itemName)
+                .isBuy(tradeOffer.isBuy())
+                .price(tradeOffer.getPrice())
+                .totalQuantity(tradeOffer.getTotalQuantity())
+                .quantityFilled(tradeOffer.getQuantityFilled())
+                .placedTimestamp(tradeOffer.getPlacedTimestamp())
+                .endedTimestamp(tradeOffer.getTimestamp())
+                .cancelled(state == GrandExchangeOfferState.CANCELLED_BUY
+                    || state == GrandExchangeOfferState.CANCELLED_SELL)
+                .synced(false)
+                .build());
+        }
 
         if ((state == GrandExchangeOfferState.BOUGHT || state == GrandExchangeOfferState.CANCELLED_BUY)
             && tradeOffer.getQuantityFilled() > 0)
@@ -361,6 +383,20 @@ public class GETrackerPlugin extends Plugin
                 });
             }
 
+            List<OfferOutcome> unsyncedOutcomes = allOutcomes.stream()
+                .filter(o -> !o.isSynced())
+                .collect(Collectors.toList());
+            if (!unsyncedOutcomes.isEmpty())
+            {
+                apiClient.syncOutcomes(unsyncedOutcomes).thenAccept(success -> {
+                    if (success)
+                    {
+                        unsyncedOutcomes.forEach(o -> o.setSynced(true));
+                        saveState();
+                    }
+                });
+            }
+
             // Always send the offers snapshot: empty list clears stale server
             // rows and doubles as a connection heartbeat for the Synced label
             apiClient.syncActiveOffers(getActiveOffers()).thenAccept(success -> {
@@ -392,6 +428,7 @@ public class GETrackerPlugin extends Plugin
     {
         if (playerName == null) return;
         tradeStorage.saveTrades(playerName, allTrades);
+        tradeStorage.saveOutcomes(playerName, allOutcomes);
         tradeStorage.saveLedger(playerName, flipTracker.snapshot());
 
         List<TradeOffer> offers = new ArrayList<>(slotOffers.values());

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.osrsge.plugin.model.BuyEntry;
 import com.osrsge.plugin.model.CompletedTrade;
+import com.osrsge.plugin.model.OfferOutcome;
 import com.osrsge.plugin.model.TradeOffer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +43,42 @@ public class TradeStorage
     private File getLedgerFile(String playerName)
     {
         return new File(PLUGIN_DIR, playerName.toLowerCase().replace(" ", "_") + "_ledger.json");
+    }
+
+    private File getOutcomesFile(String playerName)
+    {
+        return new File(PLUGIN_DIR, playerName.toLowerCase().replace(" ", "_") + "_outcomes.json");
+    }
+
+    public List<OfferOutcome> loadOutcomes(String playerName)
+    {
+        File file = getOutcomesFile(playerName);
+        if (!file.exists()) return new ArrayList<>();
+
+        try (FileReader reader = new FileReader(file))
+        {
+            Type type = new TypeToken<List<OfferOutcome>>(){}.getType();
+            List<OfferOutcome> outcomes = gson.fromJson(reader, type);
+            return outcomes != null ? outcomes : new ArrayList<>();
+        }
+        catch (IOException e)
+        {
+            log.error("Failed to load outcomes for {}", playerName, e);
+            return new ArrayList<>();
+        }
+    }
+
+    public void saveOutcomes(String playerName, List<OfferOutcome> outcomes)
+    {
+        File file = getOutcomesFile(playerName);
+        try (FileWriter writer = new FileWriter(file))
+        {
+            gson.toJson(outcomes, writer);
+        }
+        catch (IOException e)
+        {
+            log.error("Failed to save outcomes for {}", playerName, e);
+        }
     }
 
     public List<BuyEntry> loadLedger(String playerName)

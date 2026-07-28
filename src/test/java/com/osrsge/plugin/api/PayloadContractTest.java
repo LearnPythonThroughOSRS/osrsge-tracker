@@ -3,6 +3,7 @@ package com.osrsge.plugin.api;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.osrsge.plugin.model.CompletedTrade;
+import com.osrsge.plugin.model.OfferOutcome;
 import com.osrsge.plugin.model.TradeOffer;
 import net.runelite.api.GrandExchangeOfferState;
 import org.junit.Test;
@@ -42,6 +43,35 @@ public class PayloadContractTest
         assertEquals(2, json.get("tax").getAsLong());
         assertEquals(1783265377587L, json.get("buyTimestamp").getAsLong());
         assertEquals(1783265397987L, json.get("sellTimestamp").getAsLong());
+    }
+
+    @Test
+    public void outcomeSerializesContractFields()
+    {
+        OfferOutcome outcome = OfferOutcome.builder()
+            .itemId(444)
+            .itemName("Gold ore")
+            .isBuy(true)
+            .price(145)
+            .totalQuantity(100)
+            .quantityFilled(37)
+            .placedTimestamp(1783265377587L)
+            .endedTimestamp(1783265397987L)
+            .cancelled(true)
+            .synced(false)
+            .build();
+
+        JsonObject json = gson.toJsonTree(outcome).getAsJsonObject();
+
+        assertEquals(444, json.get("itemId").getAsInt());
+        assertEquals("Gold ore", json.get("itemName").getAsString());
+        assertTrue(json.get("isBuy").getAsBoolean());
+        assertEquals(145, json.get("price").getAsInt());
+        assertEquals(100, json.get("totalQuantity").getAsInt());
+        assertEquals(37, json.get("quantityFilled").getAsInt());
+        assertEquals(1783265377587L, json.get("placedTimestamp").getAsLong());
+        assertEquals(1783265397987L, json.get("endedTimestamp").getAsLong());
+        assertTrue(json.get("cancelled").getAsBoolean());
     }
 
     @Test
