@@ -45,10 +45,4 @@ public class SessionStats
         return String.format("%02d:%02d:%02d", hours, minutes, secs);
     }
 
-    public long getProfitPerHour()
-    {
-        long seconds = getSessionDurationSeconds();
-        if (seconds == 0) return 0;
-        return (totalProfit * 3600) / seconds;
-    }
 }

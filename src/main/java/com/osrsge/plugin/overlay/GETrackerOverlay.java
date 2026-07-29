@@ -60,12 +60,6 @@ public class GETrackerOverlay extends OverlayPanel
                 .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
-                .left("GP/Hour:")
-                .right(formatGp(stats.getProfitPerHour()))
-                .rightColor(profitColor)
-                .build());
-
-            panelComponent.getChildren().add(LineComponent.builder()
                 .left("Flips:")
                 .right(String.valueOf(stats.getTotalFlips()))
                 .build());

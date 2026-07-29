@@ -58,7 +58,6 @@ public class GETrackerPanel extends PluginPanel
     private final GETrackerPlugin plugin;
 
     private final JLabel profitLabel = new JLabel("0 gp");
-    private final JLabel profitPerHourLabel = new JLabel("0 gp/hr");
     private final JLabel flipsLabel = new JLabel("0");
     private final JLabel taxLabel = new JLabel("0 gp");
     private final JLabel sessionTimeLabel = new JLabel("00:00:00");
@@ -137,7 +136,7 @@ public class GETrackerPanel extends PluginPanel
 
     private JPanel buildStatsPanel()
     {
-        JPanel stats = new JPanel(new GridLayout(5, 2, 5, 5));
+        JPanel stats = new JPanel(new GridLayout(4, 2, 5, 5));
         stats.setBackground(ColorScheme.DARKER_GRAY_COLOR);
         stats.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -145,11 +144,6 @@ public class GETrackerPanel extends PluginPanel
         profitLabel.setForeground(GREEN);
         profitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         stats.add(profitLabel);
-
-        stats.add(createLabel("GP/Hour:", Color.WHITE));
-        profitPerHourLabel.setForeground(GREEN);
-        profitPerHourLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        stats.add(profitPerHourLabel);
 
         stats.add(createLabel("Flips:", Color.WHITE));
         flipsLabel.setForeground(Color.WHITE);
@@ -299,17 +293,6 @@ public class GETrackerPanel extends PluginPanel
 
         profitLabel.setText(formatGp(totals.getProfit()));
         profitLabel.setForeground(profitColor);
-
-        if (range == Range.SESSION)
-        {
-            profitPerHourLabel.setText(formatGp(session.getProfitPerHour()) + "/hr");
-            profitPerHourLabel.setForeground(profitColor);
-        }
-        else
-        {
-            profitPerHourLabel.setText("—");
-            profitPerHourLabel.setForeground(Color.GRAY);
-        }
 
         flipsLabel.setText(String.valueOf(totals.getFlips()));
         taxLabel.setText(formatGp(totals.getTax()));
