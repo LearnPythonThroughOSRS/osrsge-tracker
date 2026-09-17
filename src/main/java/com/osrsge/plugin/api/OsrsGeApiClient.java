@@ -123,6 +123,10 @@ public class OsrsGeApiClient
 
                 try (Response response = httpClient.newCall(request).execute())
                 {
+                    if (!response.isSuccessful())
+                    {
+                        log.warn("Failed to sync offers: {}", response.code());
+                    }
                     return response.isSuccessful();
                 }
             }

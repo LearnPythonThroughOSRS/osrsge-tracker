@@ -130,7 +130,82 @@ public class GETrackerPlugin extends Plugin
         syncExecutor = Executors.newSingleThreadScheduledExecutor();
         startSyncTask();
 
+        // Installed or enabled mid-session: no LOGGED_IN event will arrive,
+        // so initialize now and read the current GE slots directly
+        if (client.getGameState() == GameState.LOGGED_IN)
+        {
+            initPlayerSession(true);
+        }
+
         log.info("OSRS GE Tracker started");
+    }
+
+    /**
+     * Bind to the logged-in character: load its saved data, drain queued
+     * offer events, and sync immediately. The player object appears some
+     * frames after LOGGED_IN, so this retries each frame until it exists.
+     *
+     * @param readCurrentOffers true when starting mid-session, where the
+     *                          client will not replay the GE slot events
+     */
+    private void initPlayerSession(boolean readCurrentOffers)
+    {
+        clientThread.invokeLater(() -> {
+            Player localPlayer = client.getLocalPlayer();
+            if (localPlayer == null || localPlayer.getName() == null)
+            {
+                return false;
+            }
+            playerName = localPlayer.getName();
+            loggedIn = true;
+
+            apiClient.setPlayerName(playerName);
+            apiClient.setApiKey(config.apiKey());
+            apiClient.setBaseUrl(config.syncBaseUrl());
+
+            // Load saved data
+            allTrades = tradeStorage.loadTrades(playerName);
+            allOutcomes = tradeStorage.loadOutcomes(playerName);
+            flipTracker.restore(tradeStorage.loadLedger(playerName));
+            for (TradeOffer saved : tradeStorage.loadOffers(playerName))
+            {
+                deduper.seed(saved.getSlot(), saved.getState(),
+                    saved.getQuantityFilled(), saved.getAmountSpent());
+                // restore slot state so placement timestamps survive relogs
+                slotOffers.put(saved.getSlot(), saved);
+            }
+
+            // Process any pending events
+            for (GrandExchangeOfferChanged pending : pendingEvents)
+            {
+                processOfferEvent(pending);
+            }
+            pendingEvents.clear();
+
+            if (readCurrentOffers)
+            {
+                // same path as the login replay; the seeded deduper drops
+                // slots whose state we already recorded
+                GrandExchangeOffer[] offers = client.getGrandExchangeOffers();
+                for (int slot = 0; offers != null && slot < offers.length; slot++)
+                {
+                    if (offers[slot] == null)
+                    {
+                        continue;
+                    }
+                    GrandExchangeOfferChanged current = new GrandExchangeOfferChanged();
+                    current.setSlot(slot);
+                    current.setOffer(offers[slot]);
+                    processOfferEvent(current);
+                }
+            }
+
+            // connect immediately instead of waiting for the next timer tick
+            syncExecutor.execute(this::performSync);
+
+            updatePanel();
+            return true;
+        });
     }
 
     @Override
@@ -152,45 +227,7 @@ public class GETrackerPlugin extends Plugin
     {
         if (event.getGameState() == GameState.LOGGED_IN)
         {
-            // Player object appears some frames after LOGGED_IN; retry until it exists
-            clientThread.invokeLater(() -> {
-                Player localPlayer = client.getLocalPlayer();
-                if (localPlayer == null || localPlayer.getName() == null)
-                {
-                    return false;
-                }
-                playerName = localPlayer.getName();
-                loggedIn = true;
-
-                apiClient.setPlayerName(playerName);
-                apiClient.setApiKey(config.apiKey());
-                apiClient.setBaseUrl(config.syncBaseUrl());
-
-                // Load saved data
-                allTrades = tradeStorage.loadTrades(playerName);
-                allOutcomes = tradeStorage.loadOutcomes(playerName);
-                flipTracker.restore(tradeStorage.loadLedger(playerName));
-                for (TradeOffer saved : tradeStorage.loadOffers(playerName))
-                {
-                    deduper.seed(saved.getSlot(), saved.getState(),
-                        saved.getQuantityFilled(), saved.getAmountSpent());
-                    // restore slot state so placement timestamps survive relogs
-                    slotOffers.put(saved.getSlot(), saved);
-                }
-
-                // Process any pending events
-                for (GrandExchangeOfferChanged pending : pendingEvents)
-                {
-                    processOfferEvent(pending);
-                }
-                pendingEvents.clear();
-
-                // connect immediately instead of waiting for the next timer tick
-                syncExecutor.execute(this::performSync);
-
-                updatePanel();
-                return true;
-            });
+            initPlayerSession(false);
         }
         else if (event.getGameState() == GameState.LOGIN_SCREEN)
         {
