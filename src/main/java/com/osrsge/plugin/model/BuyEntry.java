@@ -12,6 +12,6 @@ public class BuyEntry
 {
     private int itemId;
     private int remaining;
-    private int price;      // average gp paid per item
+    private long price;     // average gp paid per item
     private long timestamp;
 }

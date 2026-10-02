@@ -15,7 +15,7 @@ public class OfferOutcome
     private int itemId;
     private String itemName;
     private boolean isBuy;
-    private int price;             // offered price per item
+    private long price;            // offered price per item
     private int totalQuantity;     // requested
     private int quantityFilled;    // actually traded (0 = never filled)
     private long placedTimestamp;  // when the offer was placed

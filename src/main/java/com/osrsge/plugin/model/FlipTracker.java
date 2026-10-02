@@ -15,7 +15,7 @@ public class FlipTracker
 {
     private final Map<Integer, Deque<BuyEntry>> buyLedger = new HashMap<>();
 
-    public void recordBuy(int itemId, int quantity, int avgPrice, long timestamp)
+    public void recordBuy(int itemId, int quantity, long avgPrice, long timestamp)
     {
         if (quantity <= 0)
         {
@@ -29,7 +29,7 @@ public class FlipTracker
      * Match a completed sell against the ledger. Returns null when no
      * buys exist for the item (nothing to flip against).
      */
-    public CompletedTrade matchSell(int itemId, String itemName, int quantity, int sellAvgPrice, long timestamp)
+    public CompletedTrade matchSell(int itemId, String itemName, int quantity, long sellAvgPrice, long timestamp)
     {
         Deque<BuyEntry> buys = buyLedger.get(itemId);
         if (buys == null || buys.isEmpty() || quantity <= 0)
@@ -61,7 +61,7 @@ public class FlipTracker
         return CompletedTrade.builder()
             .itemId(itemId)
             .itemName(itemName)
-            .buyPrice((int) (totalBuyCost / matched))
+            .buyPrice(totalBuyCost / matched)
             .sellPrice(sellAvgPrice)
             .quantity(matched)
             .tax(totalTax)

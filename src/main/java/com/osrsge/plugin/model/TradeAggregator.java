@@ -35,14 +35,14 @@ public final class TradeAggregator
             return quantity == 0 ? 0 : totalProfit / quantity;
         }
 
-        public int getAvgBuyPrice()
+        public long getAvgBuyPrice()
         {
-            return quantity == 0 ? 0 : (int) (totalBuyCost / quantity);
+            return quantity == 0 ? 0 : totalBuyCost / quantity;
         }
 
-        public int getAvgSellPrice()
+        public long getAvgSellPrice()
         {
-            return quantity == 0 ? 0 : (int) (totalSellValue / quantity);
+            return quantity == 0 ? 0 : totalSellValue / quantity;
         }
 
         public double getRoi()

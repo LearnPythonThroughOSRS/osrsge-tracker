@@ -11,7 +11,7 @@ public class TradeOffer
     private int slot;
     private int itemId;
     private String itemName;
-    private int price;
+    private long price;
     private int totalQuantity;
     private int quantityFilled;
     private long amountSpent;
@@ -36,9 +36,9 @@ public class TradeOffer
             || state == GrandExchangeOfferState.SELLING;
     }
 
-    public int getAveragePrice()
+    public long getAveragePrice()
     {
         if (quantityFilled == 0) return price;
-        return (int) (amountSpent / quantityFilled);
+        return amountSpent / quantityFilled;
     }
 }

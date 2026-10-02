@@ -9,8 +9,8 @@ public class CompletedTrade
 {
     private int itemId;
     private String itemName;
-    private int buyPrice;
-    private int sellPrice;
+    private long buyPrice;
+    private long sellPrice;
     private int quantity;
     private long profit;
     private long tax;
@@ -18,7 +18,7 @@ public class CompletedTrade
     private long sellTimestamp;
     private boolean synced;
 
-    public int getMargin()
+    public long getMargin()
     {
         return sellPrice - buyPrice;
     }
