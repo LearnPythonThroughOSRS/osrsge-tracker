@@ -30,6 +30,9 @@ public class GETrackerOverlay extends OverlayPanel
         this.config = config;
         setPosition(OverlayPosition.TOP_LEFT);
         setPriority(OverlayPriority.MED);
+        // wider than the 129px default: long labels and values wrap and
+        // overlap at the default width
+        panelComponent.setPreferredSize(new Dimension(180, 0));
     }
 
     @Override
@@ -54,7 +57,7 @@ public class GETrackerOverlay extends OverlayPanel
             Color profitColor = profit >= 0 ? new Color(0, 200, 83) : new Color(255, 80, 80);
 
             panelComponent.getChildren().add(LineComponent.builder()
-                .left("Session Profit:")
+                .left("Profit:")
                 .right(formatGp(profit))
                 .rightColor(profitColor)
                 .build());
@@ -65,7 +68,7 @@ public class GETrackerOverlay extends OverlayPanel
                 .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
-                .left("Session:")
+                .left("Time:")
                 .right(stats.getSessionDurationFormatted())
                 .build());
         }
@@ -83,11 +86,12 @@ public class GETrackerOverlay extends OverlayPanel
                 for (TradeOffer offer : activeOffers)
                 {
                     String action = offer.isBuy() ? "BUY" : "SELL";
-                    String progress = offer.getQuantityFilled() + "/" + offer.getTotalQuantity();
+                    String progress = formatQuantity(offer.getQuantityFilled())
+                        + "/" + formatQuantity(offer.getTotalQuantity());
                     Color actionColor = offer.isBuy() ? new Color(100, 180, 255) : new Color(255, 180, 100);
 
                     panelComponent.getChildren().add(LineComponent.builder()
-                        .left(action + " " + offer.getItemName())
+                        .left(action + " " + truncate(offer.getItemName(), 12))
                         .leftColor(actionColor)
                         .right(progress)
                         .build());
@@ -105,6 +109,34 @@ public class GETrackerOverlay extends OverlayPanel
             .build());
 
         return super.render(graphics);
+    }
+
+    /** Keeps long item names from wrapping onto the value beside them. */
+    private String truncate(String name, int maxChars)
+    {
+        if (name == null || name.length() <= maxChars)
+        {
+            return name;
+        }
+        return name.substring(0, maxChars - 1) + "..";
+    }
+
+    /** Compact quantities so fill progress fits on one line. */
+    private String formatQuantity(int quantity)
+    {
+        if (quantity >= 1_000_000)
+        {
+            return String.format("%.1fM", quantity / 1_000_000.0);
+        }
+        if (quantity >= 10_000)
+        {
+            return String.format("%.0fK", quantity / 1_000.0);
+        }
+        if (quantity >= 1_000)
+        {
+            return String.format("%.1fK", quantity / 1_000.0);
+        }
+        return String.valueOf(quantity);
     }
 
     private String formatGp(long amount)
