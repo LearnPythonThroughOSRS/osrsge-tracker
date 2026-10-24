@@ -5,6 +5,7 @@ import com.osrsge.plugin.GETrackerPlugin;
 import com.osrsge.plugin.model.SessionStats;
 import com.osrsge.plugin.model.TradeOffer;
 import net.runelite.api.Client;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
@@ -30,9 +31,14 @@ public class GETrackerOverlay extends OverlayPanel
         this.config = config;
         setPosition(OverlayPosition.TOP_LEFT);
         setPriority(OverlayPriority.MED);
-        // wider than the 129px default: long labels and values wrap and
-        // overlap at the default width
-        panelComponent.setPreferredSize(new Dimension(180, 0));
+        // Wider than the 129px default: long labels and values wrap and
+        // overlap at the default width. The rest is readability - the
+        // default background is a washed-out translucent brown that the
+        // game shows through.
+        panelComponent.setPreferredSize(new Dimension(230, 0));
+        panelComponent.setBackgroundColor(new Color(12, 12, 12, 225));
+        panelComponent.setBorder(new Rectangle(10, 10, 10, 10));
+        panelComponent.setGap(new Point(0, 5));
     }
 
     @Override
@@ -43,6 +49,9 @@ public class GETrackerOverlay extends OverlayPanel
         {
             return null;
         }
+
+        // the regular font instead of the small default overlay font
+        graphics.setFont(FontManager.getRunescapeFont());
 
         SessionStats stats = plugin.getSessionStats();
 
